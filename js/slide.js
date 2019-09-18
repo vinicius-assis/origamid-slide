@@ -20,30 +20,69 @@ export default class Slide {
   }
 
   onStart(event) {
-    event.preventDefault()
-    this.dist.startX = event.clientX
-    this.wrapper.addEventListener('mousemove', this.onMove)
+    let movetype
+    if (event.type === 'mousedown') {
+      event.preventDefault()
+      this.dist.startX = event.clientX
+      movetype = 'mousemove'
+    } else {
+      this.dist.startX = event.changedTouches[0].clientX
+      movetype = 'touchmove'
+    }
+    this.wrapper.addEventListener(movetype, this.onMove)
   }
 
   onMove(event) {
-    const finalPosition = this.updatePosition(event.clientX)
+    const pointerPosition = (event.type === 'mousemove') ? event.clientX : event.changedTouches[0].clientX
+    const finalPosition = this.updatePosition(pointerPosition)
     this.moveSlide(finalPosition)
   }
 
   onEnd(event) {
-    this.wrapper.addEventListener('mousemove', this.onMove)
+    const movetype = (event.type === 'mouseup') ? 'mousemove' : 'touchmove'
+    this.wrapper.addEventListener(movetype, this.onMove)
     this.dist.finalPosition = this.dist.movePosition
   }
 
   addSlideEvents() {
     this.wrapper.addEventListener('mousedown', this.onStart)
+    this.wrapper.addEventListener('touchstart', this.onStart)
     this.wrapper.addEventListener('mouseup', this.onEnd)    
+    this.wrapper.addEventListener('touchend', this.onEnd)    
   }
 
   bindEvents() {
     this.onStart = this.onStart.bind(this)
     this.onMove = this.onMove.bind(this)
     this.onEnd = this.onEnd.bind(this)
+  }
+
+  slidePosition(slide) {
+    const margin = (this.wrapper.offsetWidth - slide.offsetWidth) / 2
+    return (slide.offsetLeft - margin)
+  }
+
+  slideConfig() {
+    this.slideArray =[...this.slide.children].map( (element) => {
+      const position = this.slidePosition(element)
+      return { element, position }
+    })
+  }
+
+  slideIndexNav(index) {
+    const last = this.slideArray.length - 1
+    this.index = {
+      prev: index ? index - 1 : undefined,
+      active: index,
+      next: index === last ? undefined : index + 1,
+    }
+  }
+
+  changeSlide(index) {
+    const activeSlide = this.slideArray[index]
+    this.moveSlide(activeSlide.position)
+    this.slideIndexNav(index)
+    this.dist.finalPosition = activeSlide.position
   }
 
   init() {
